@@ -2,7 +2,7 @@
 #include <string>
 #include <cstring>
 #include <cstdint>
-#include <torch/torch.h>
+#include <random>
 
 #include "ronnlib.h"
 
@@ -30,16 +30,13 @@ Model::Model(int nInputs,
         depthwise = dwise;
 
         buildModel(seed);
-
-        // and setup the activation functions
-        leakyrelu = torch::nn::LeakyReLU(
-                        torch::nn::LeakyReLUOptions()
-                        .negative_slope(0.2));
 }
 
 void Model::buildModel(int seed) {
 
     int inChannels, outChannels;
+
+    model = std::make_unique<RTNeural::Model<float>> (getInputs());
 
     // construct the convolutional layers
     for (int i = 0; i < getLayers(); i++) 
@@ -64,13 +61,53 @@ void Model::buildModel(int seed) {
             inChannels = getChannels();
             outChannels = getChannels();
         }
-        if (!depthwise) 
+        if (true) // (!depthwise) 
         {
-            conv.push_back(torch::nn::Conv1d(
-                torch::nn::Conv1dOptions(inChannels,outChannels,getKernelWidth())
-                .stride(1)
-                .dilation(pow(getDilationFactor(),i))
-                .bias(getBias())));
+            auto conv1D = std::make_unique<RTNeural::Conv1D<float>> ((size_t) inChannels,
+                                                                     (size_t) outChannels,
+                                                                     (size_t) getKernelWidth(),
+                                                                     (size_t) std::pow (getDilationFactor(), i));
+            model->addLayer (conv1D.release());
+
+            if (i + 1 < getLayers()) {
+                std::unique_ptr<RTNeural::Activation<float>> act;
+                switch (getActivation()) {
+                    case Linear:
+                        break;
+                    case LeakyReLU: // @TODO
+                        break;
+                    case Tanh:
+                        act = std::make_unique<RTNeural::TanhActivation<float>> ((size_t) outChannels);
+                        model->addLayer (act.release());
+                        break;
+                    case Sigmoid:
+                        act = std::make_unique<RTNeural::SigmoidActivation<float>> ((size_t) outChannels);
+                        model->addLayer (act.release());
+                        break;
+                    case ReLU:
+                        act = std::make_unique<RTNeural::ReLuActivation<float>> ((size_t) outChannels);
+                        model->addLayer (act.release());
+                        break;
+                    case ELU: // @TODO
+                        break;
+                    case SELU: // @TODO
+                        break;
+                    case GELU: // @TODO
+                        break;
+                    case RReLU: // @TODO
+                        break;
+                    case Softplus: // @TODO
+                        break;
+                    case Softshrink: // @TODO
+                        break;
+                    case Sine: // @TODO
+                        break;
+                    case Sine30: // @TODO
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
         else 
         {   // first depthwise conv
@@ -87,13 +124,14 @@ void Model::buildModel(int seed) {
             {
                 groups = inChannels;
             }
+            // @TODO: not sure how to implement yet with RTNeural...
             std::cout << i << " " << inChannels << " " << outChannels << " " << groups << std::endl;
-            conv.push_back(torch::nn::Conv1d(
-                torch::nn::Conv1dOptions(inChannels,outChannels,getKernelWidth())
-                .stride(1)
-                .groups(groups)
-                .dilation(pow(getDilationFactor(),i))
-                .bias(getBias())));
+            // conv.push_back(torch::nn::Conv1d(
+            //     torch::nn::Conv1dOptions(inChannels,outChannels,getKernelWidth())
+            //     .stride(1)
+            //     .groups(groups)
+            //     .dilation(pow(getDilationFactor(),i))
+            //     .bias(getBias())));
 
             // followed by pointwise conv
             //conv.push_back(torch::nn::Conv1d(
@@ -103,55 +141,96 @@ void Model::buildModel(int seed) {
         }
     }
 
-    // now register each convolutional layer
-    for (auto i = 0; i < getLayers(); i++) {
-        register_module("conv"+std::to_string(i), conv[i]);
-    }
     initModel(seed);
 }
 
 // the forward operation
-torch::Tensor Model::forward(torch::Tensor x) {
-    // we iterate over the convolutions
-    for (auto i = 0; i < getLayers(); i++) {
-        if (i + 1 < getLayers()) {
-            //setActivation(static_cast<Activation>(rand() % Sine));
-            switch (getActivation()) {
-                case Linear:        x =                   (conv[i](x)); break;
-                case LeakyReLU:     x = leakyrelu         (conv[i](x)); break;
-                case Tanh:          x = torch::tanh       (conv[i](x)); break;
-                case Sigmoid:       x = torch::sigmoid    (conv[i](x)); break;
-                case ReLU:          x = torch::relu       (conv[i](x)); break;
-                case ELU:           x = torch::elu        (conv[i](x)); break;
-                case SELU:          x = torch::selu       (conv[i](x)); break;
-                case GELU:          x = torch::gelu       (conv[i](x)); break;
-                case RReLU:         x = torch::rrelu      (conv[i](x)); break;
-                case Softplus:      x = torch::softplus   (conv[i](x)); break;
-                case Softshrink:    x = torch::softshrink (conv[i](x)); break;
-                case Sine:          x = torch::sin        (conv[i](x)); break;
-                case Sine30:        x = torch::sin        (30 * conv[i](x)); break;
-                default:            x =                   (conv[i](x)); break;
-            }
-        }
-        else
-            x = conv[i](x);
-    }
-    return x;
-}
+// torch::Tensor Model::forward(torch::Tensor x) {
+//     // we iterate over the convolutions
+//     for (auto i = 0; i < getLayers(); i++) {
+//         if (i + 1 < getLayers()) {
+//             //setActivation(static_cast<Activation>(rand() % Sine));
+//             switch (getActivation()) {
+//                 case Linear:        x =                   (conv[i](x)); break;
+//                 case LeakyReLU:     x = leakyrelu         (conv[i](x)); break;
+//                 case Tanh:          x = torch::tanh       (conv[i](x)); break;
+//                 case Sigmoid:       x = torch::sigmoid    (conv[i](x)); break;
+//                 case ReLU:          x = torch::relu       (conv[i](x)); break;
+//                 case ELU:           x = torch::elu        (conv[i](x)); break;
+//                 case SELU:          x = torch::selu       (conv[i](x)); break;
+//                 case GELU:          x = torch::gelu       (conv[i](x)); break;
+//                 case RReLU:         x = torch::rrelu      (conv[i](x)); break;
+//                 case Softplus:      x = torch::softplus   (conv[i](x)); break;
+//                 case Softshrink:    x = torch::softshrink (conv[i](x)); break;
+//                 case Sine:          x = torch::sin        (conv[i](x)); break;
+//                 case Sine30:        x = torch::sin        (30 * conv[i](x)); break;
+//                 default:            x =                   (conv[i](x)); break;
+//             }
+//         }
+//         else
+//             x = conv[i](x);
+//     }
+//     return x;
+// }
 
 void Model::initModel(int seed){
-    torch::manual_seed(seed); // always reset the seed before init
-    for (auto i = 0; i < getLayers(); i++) {
-        switch(getInitType())
+    std::mt19937 g1 ((unsigned) seed);
+    std::function<float()> rng;
+    
+    std::normal_distribution<float> normalDist {};
+    std::uniform_real_distribution<float> un1Dist { -0.25f, 0.25f };
+    std::uniform_real_distribution<float> un2Dist { -1.0f, 1.0f };
+
+    switch(getInitType())
+    {
+        case normal:
+            rng = std::bind (normalDist, g1);
+            break;
+        case uniform1:
+            rng = std::bind (un1Dist, g1);
+            break;
+        case uniform2:
+            rng = std::bind (un2Dist, g1);
+            break;
+        case xavier_normal: // @TODO
+            return;
+        case xavier_uniform: // @TODO
+            return;
+        case kaiming_normal: // @TODO
+            return;
+        case kamming_uniform: // @TODO
+            return;
+    }
+
+    for (auto i = 0; i < model->layers.size(); i++) {
+        auto* layer = dynamic_cast<RTNeural::Conv1D<float>*> (model->layers[i]);
+        if (layer == nullptr) // not a Conv1D layer!
+            continue;
+
+        std::vector<std::vector<std::vector<float>>> convWeights(layer->out_size);
+        for(auto& wIn : convWeights)
         {
-            case normal:            torch::nn::init::normal_            (conv[i]->weight);
-            case uniform1:          torch::nn::init::uniform_           (conv[i]->weight, -0.25, 0.25);
-            case uniform2:          torch::nn::init::uniform_           (conv[i]->weight, -1.00, 1.00);
-            case xavier_normal:     torch::nn::init::xavier_normal_     (conv[i]->weight);
-            case xavier_uniform:    torch::nn::init::xavier_uniform_    (conv[i]->weight);
-            case kaiming_normal:    torch::nn::init::kaiming_normal_    (conv[i]->weight);
-            case kamming_uniform:   torch::nn::init::kaiming_uniform_   (conv[i]->weight);
+            wIn.resize(layer->in_size);
+
+            for(auto& w : wIn)
+            {
+                w.resize(layer->getKernelSize(), 0.0f);
+                for (auto j = 0; j < w.size(); ++j)
+                    w[j] = rng();
+            }
         }
+
+        layer->setWeights(convWeights);
+
+        // load biases
+        std::vector<float> convBias (layer->out_size, 0.0f);
+        if (bias)
+        {
+            for (auto j = 0; j < convBias.size(); ++j)
+                convBias[j] = rng();
+        }
+
+        layer->setBias(convBias);
     }
 }
 
@@ -164,15 +243,18 @@ int Model::getOutputSize(int frameSize){
 }
 
 int Model::getNumParameters(){
-    int n = 0;
-    for (const auto& p : parameters()) {
-        auto sizes = p.sizes();
-        int s = 1;
-        for (auto dim : sizes) {
-            std::cout << dim << std::endl;
-            s = s * dim;
-        }
-        n = n + s;
-    }
-    return n;
+    return 100;
+
+    // @TODO
+    // int n = 0;
+    // for (const auto& p : parameters()) {
+    //     auto sizes = p.sizes();
+    //     int s = 1;
+    //     for (auto dim : sizes) {
+    //         std::cout << dim << std::endl;
+    //         s = s * dim;
+    //     }
+    //     n = n + s;
+    // }
+    // return n;
 }

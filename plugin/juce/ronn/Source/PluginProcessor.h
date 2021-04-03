@@ -115,4 +115,5 @@ private:
 
     std::vector<IIRFilter> highPassFilters; // high pass filters for the left and right channels
 
+    std::vector<float> modelInputData;
 };

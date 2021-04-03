@@ -10,7 +10,6 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include "ronnlib.h"
 
 //==============================================================================
 RonnAudioProcessor::RonnAudioProcessor()
@@ -144,10 +143,14 @@ void RonnAudioProcessor::prepareToPlay (double sampleRate_, int samplesPerBlock_
     // setup high pass filter model
     double freq = 10.0;
     double q = 10.0;
+    highPassFilters.clear();
+    modelInputData.clear();
     for (int channel = 0; channel < getTotalNumOutputChannels(); ++channel) {
         IIRFilter filter;
         filter.setCoefficients(IIRCoefficients::makeHighPass (sampleRate_, freq, q));
         highPassFilters.push_back(filter);
+        modelInputData.push_back (0.0f);
+
     }
 
     calculateReceptiveField();      // compute the receptive field, make sure it's up to date
@@ -268,30 +271,42 @@ void RonnAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& m
     mBufferWriteIdx = twp;
     mBufferReadIdx  = trp;
 
-    std::vector<int64_t> sizes = {iBufferLength};                       // size of the buffer data
-    auto* iBufferData = iBuffer.getWritePointer(0);                     // get pointer of the first channel 
-    at::Tensor tensorFrame = torch::from_blob(iBufferData, sizes);      // load data from buffer into tensor type
-    tensorFrame = torch::mul(tensorFrame, inputGainLn);  // apply the input gain first
+    iBuffer.applyGain (inputGainLn);
 
-    if (nInputs > 1){
-        auto* iBufferData = iBuffer.getWritePointer(1);                         // get pointer of the second channel 
-        at::Tensor tensorFrameR = torch::from_blob(iBufferData, sizes);         // load data from buffer into tensor type
-        tensorFrameR = torch::mul(tensorFrameR, inputGainLn);    // apply the input gain first
-        tensorFrame = at::stack({tensorFrame, tensorFrameR});    // stack the two channels to form the stereo tensor
-        //std::cout << "input" << tensorFrame.sizes() << std::endl;
+    // @TODO: use JUCE interleaver to interleave these channels so we have
+    // instant access to the data in the correct shape!
+    auto** iPtrs = iBuffer.getArrayOfWritePointers();
+    auto** bPtrs = buffer.getArrayOfWritePointers();
+
+    if (nInputs == 1)
+    {
+        for (int n = 0; n < iBuffer.getNumSamples(); ++n)
+        {
+            modelInputData[0] = iPtrs[0][n];
+            bPtrs[0][n] = model->model->forward (modelInputData.data());
+        }
     }
-
-    tensorFrame = torch::reshape(tensorFrame, {1,nInputs,iBufferLength});
-    //std::cout << "input reshape" << tensorFrame.sizes() << std::endl;
-
-    auto outputFrame = model->forward(tensorFrame);                             // process audio through network
-    //std::cout << "output" << outputFrame.sizes() << std::endl;
+    else if (nInputs == 2)
+    {
+        for (int n = 0; n < iBuffer.getNumSamples(); ++n)
+        {
+            modelInputData[0] = iPtrs[0][n];
+            modelInputData[1] = iPtrs[1][n];
+            model->model->forward (modelInputData.data());
+            
+            auto* outs = model->model->getOutputs();
+            bPtrs[0][n] = outs[0];
+            bPtrs[1][n] = outs[1];
+        }
+    }
+    else
+    {
+        // @TODO
+        jassertfalse;
+    }
 
     // now load the output channels back into the buffer
     for (int channel = 0; channel < outChannels; ++channel) {
-        auto outputData = outputFrame.index({0,channel,torch::indexing::Slice()});      // index the proper output channel
-        auto outputDataPtr = outputData.data_ptr<float>();                              // get pointer to the output data
-        buffer.copyFrom(channel,0,outputDataPtr,blockSamples);                          // copy output data to buffer
         highPassFilters[channel].processSamples (buffer.getWritePointer (channel), buffer.getNumSamples());
     }
     buffer.applyGain(outputGainLn);                                  // apply the output gain

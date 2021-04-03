@@ -231,8 +231,8 @@ void RonnAudioProcessorEditor::updateModelState()
   processor.calculateReceptiveField();
   float rfms = (processor.receptiveFieldSamples / processor.sampleRate) * 1000;
   receptiveFieldTextEditor.setText(String(rfms, 1));
-  int parameters = processor.model->getNumParameters();
-  parametersTextEditor.setText(String(parameters));
+  // int parameters = processor.model->getNumParameters();
+  // parametersTextEditor.setText(String(parameters));
 }
 
 //==============================================================================
