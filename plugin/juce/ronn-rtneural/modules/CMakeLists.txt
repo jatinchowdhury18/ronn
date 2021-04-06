@@ -1,15 +1,23 @@
 add_subdirectory(juce)
+add_subdirectory(RTNeural)
+include_directories(RTNeural)
+
+# Set your choice of RTNeural backends here!
+set(RTNEURAL_STL ON CACHE BOOL "Use RTNeural with this backend" FORCE)
 
 add_library(juce_plugin_modules STATIC)
+
+include(WarningFlags.cmake)
 
 target_link_libraries(juce_plugin_modules
     PRIVATE
         juce::juce_audio_utils
         juce::juce_dsp
+        RTNeural
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
-        juce::juce_recommended_warning_flags
+        warning_flags
 )
 
 target_compile_definitions(juce_plugin_modules

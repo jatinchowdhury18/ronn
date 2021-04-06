@@ -8,7 +8,7 @@ add_subdirectory(modules)
 # juce_set_vst2_sdk_path(C:/SDKs/VST_SDK/VST2_SDK/)
 
 juce_add_plugin(ronn
-    COMPANY_NAME Christian Steinmetz
+    COMPANY_NAME "Christian Steinmetz"
     PLUGIN_MANUFACTURER_CODE Manu
     PLUGIN_CODE Sko4
     FORMATS AU VST3 Standalone #VST

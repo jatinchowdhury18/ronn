@@ -16,7 +16,8 @@
 //==============================================================================
 /**
 */
-class RonnAudioProcessorEditor  : public AudioProcessorEditor
+class RonnAudioProcessorEditor  : public AudioProcessorEditor,
+                                  private ChangeListener
 {
 public:
     enum
@@ -37,6 +38,9 @@ public:
     //==============================================================================
     void paint (Graphics&) override;
     void resized() override;
+
+    void changeListenerCallback (ChangeBroadcaster* source) override;
+
     void updateModelState();
 
 private:

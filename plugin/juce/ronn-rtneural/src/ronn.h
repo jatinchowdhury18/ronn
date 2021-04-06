@@ -1,8 +1,10 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <pch.h>
+#include "ronnlib.h"
 
 class ronn : public chowdsp::PluginBase<ronn>,
+             public ChangeBroadcaster,
              private AudioProcessorValueTreeState::Listener
 {
 public:
@@ -19,6 +21,12 @@ public:
 
     void getStateInformation (MemoryBlock& data) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
+
+    void calculateReceptiveField();
+    void buildModel();
+
+    int getReceptiveFieldSamples() const noexcept { return receptiveFieldSamples; }
+    Model* getRonnModel() const noexcept { return ronnModel.get(); }
 
 private:
     std::atomic<float>* inputGainParameter  = nullptr;
@@ -37,6 +45,12 @@ private:
     dsp::StateVariableTPTFilter<float> dcBlocker;
     dsp::Gain<float> inputGain;
     dsp::Gain<float> outputGain;
+
+    Model::Params ronnParams;
+    std::unique_ptr<Model> ronnModel;
+    SpinLock modelLoadLock;
+
+    int receptiveFieldSamples = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ronn)
 };

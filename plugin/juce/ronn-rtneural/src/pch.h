@@ -10,4 +10,5 @@
 #include <JuceHeader.h>
 
 // Any other widely used headers that don't change...
+#include <RTNeural/RTNeural.h>
 #include "PluginBase.h"

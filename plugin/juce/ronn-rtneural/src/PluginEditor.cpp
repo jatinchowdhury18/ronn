@@ -197,21 +197,26 @@ RonnAudioProcessorEditor::RonnAudioProcessorEditor (ronn& p, AudioProcessorValue
     depthwiseAttachment.reset   (new ButtonAttachment   (valueTreeState, "depthwise", depthwiseButton));
     //seedAttachment.reset        (new TextBoxAttachment  (valueTreeState, "seed", seedTextEditor));
 
-    // callbacks for updating the model (not all parameters)
-    // layersSlider.onValueChange   = [this] { updateModelState(); };
-    // kernelSlider.onValueChange   = [this] { updateModelState(); };
-    // channelsSlider.onValueChange = [this] { updateModelState(); };
-    // dilationsComboBox.onChange   = [this] { updateModelState(); };
-    // activationsComboBox.onChange = [this] { updateModelState(); };
-    // initTypeComboBox.onChange    = [this] { updateModelState(); };
-    // useBiasButton.onStateChange  = [this] { updateModelState(); };
-    // depthwiseButton.onStateChange = [this] { updateModelState(); };
+    proc.addChangeListener (this);
+    changeListenerCallback (&proc); // set initial values
 
     setSize (600, 300);
 }
 
 RonnAudioProcessorEditor::~RonnAudioProcessorEditor()
 {
+   proc.removeChangeListener (this);
+}
+
+void RonnAudioProcessorEditor::changeListenerCallback (ChangeBroadcaster* source)
+{
+    if (source != &proc)
+        return;
+
+    float rfms = (proc.getReceptiveFieldSamples() / proc.getSampleRate()) * 1000;
+    receptiveFieldTextEditor.setText(String(rfms, 1));
+    int parameters = proc.getRonnModel()->getNumParameters();
+    parametersTextEditor.setText(String(parameters));
 }
 
 //==============================================================================

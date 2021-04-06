@@ -1,5 +1,6 @@
 target_sources(ronn PRIVATE
     ronn.cpp
+    ronnlib.cpp
     PluginEditor.cpp
 )
 
