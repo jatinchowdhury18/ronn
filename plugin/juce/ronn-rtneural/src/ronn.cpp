@@ -73,8 +73,20 @@ void ronn::parameterChanged (const String& paramID, float newValue)
 
 void ronn::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    inputGain.prepare ({ sampleRate, (uint32) samplesPerBlock, (uint32) getMainBusNumInputChannels() });
-    outputGain.prepare ({ sampleRate, (uint32) samplesPerBlock, (uint32) getMainBusNumOutputChannels() });
+    dsp::ProcessSpec inputSpec { sampleRate,
+                                 (uint32) samplesPerBlock,
+                                 (uint32) getMainBusNumInputChannels() };
+    
+    dsp::ProcessSpec outputSpec { sampleRate,
+                                  (uint32) samplesPerBlock,
+                                  (uint32) getMainBusNumOutputChannels() };
+
+    inputGain.prepare (inputSpec);
+    outputGain.prepare (outputSpec);
+
+    dcBlocker.prepare (outputSpec);
+    dcBlocker.setType (dsp::StateVariableTPTFilterType::highpass);
+    dcBlocker.setCutoffFrequency (30.0f);
 }
 
 void ronn::releaseResources()
@@ -87,6 +99,9 @@ void ronn::processAudioBlock (AudioBuffer<float>& buffer)
     dsp::AudioBlock<float> audioBlock (buffer);
     inputGain.setGainDecibels (*inputGainParameter);
     inputGain.process (dsp::ProcessContextReplacing<float> { audioBlock });
+
+    // DC blocker
+    dcBlocker.process (dsp::ProcessContextReplacing<float> { audioBlock });
 
     // process output gain
     outputGain.setGainDecibels (*outputGainParameter);

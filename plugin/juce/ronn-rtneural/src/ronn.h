@@ -34,6 +34,7 @@ private:
     std::atomic<float>* seedParameter       = nullptr;
     std::atomic<float>* depthwiseParameter  = nullptr;
 
+    dsp::StateVariableTPTFilter<float> dcBlocker;
     dsp::Gain<float> inputGain;
     dsp::Gain<float> outputGain;
 
