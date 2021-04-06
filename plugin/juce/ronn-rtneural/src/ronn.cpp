@@ -37,6 +37,7 @@ ronn::ronn()
     vts.addParameterListener ("layers", this);
     vts.addParameterListener ("kernel", this);
     vts.addParameterListener ("channels", this);
+    vts.addParameterListener ("activation", this);
     vts.addParameterListener ("dilation", this);
     vts.addParameterListener ("useBias", this);
     vts.addParameterListener ("initType", this);
@@ -50,8 +51,8 @@ void ronn::addParameters (Parameters& params)
 {
     // define these for now so we don't blow up the CPU
     constexpr int maxLayers = 8; // 24;
-    constexpr int maxKWidth = 8; // 64;
-    constexpr int maxChannels = 8; // 64;
+    constexpr int maxKWidth = 24; // 64;
+    constexpr int maxChannels = 24; // 64;
 
     params.push_back (std::make_unique<AudioParameterInt>   ("layers", "Layers", 1, maxLayers, 6));
     params.push_back (std::make_unique<AudioParameterInt>   ("kernel", "Kernel Width", 1, maxKWidth, 3));
@@ -88,15 +89,17 @@ void ronn::parameterChanged (const String& paramID, float newValue)
         return;
     }
 
-    if (paramID == "inputGain" && static_cast<bool> (*linkGainParameter))
+    if (paramID == "inputGain")
     {
-        linkOutputGain();
+        if (static_cast<bool> (*linkGainParameter))
+            linkOutputGain();
         return;
     }
 
-    if (paramID == "outputGain" && static_cast<bool> (*linkGainParameter))
+    if (paramID == "outputGain")
     {
-        linkInputGain();
+        if (static_cast<bool> (*linkGainParameter))
+            linkInputGain();
         return;
     }
 
@@ -121,6 +124,8 @@ void ronn::parameterChanged (const String& paramID, float newValue)
         ronnParams.kWidth = (int) newValue;
     else if (paramID == "channels")
         ronnParams.nChannels = (int) newValue;
+    else if (paramID == "activation")
+        ronnParams.act = (int) newValue;
     else if (paramID == "dilation")
         ronnParams.dilationFactor = (int) newValue;
     else if (paramID == "useBias")
@@ -156,7 +161,10 @@ void ronn::prepareToPlay (double sampleRate, int samplesPerBlock)
                                   (uint32) getMainBusNumOutputChannels() };
 
     inputGain.prepare (inputSpec);
+    inputGain.setRampDurationSeconds (0.05);
+
     outputGain.prepare (outputSpec);
+    outputGain.setRampDurationSeconds (0.05);
 
     dcBlocker.prepare (outputSpec);
     dcBlocker.setType (dsp::StateVariableTPTFilterType::highpass);
@@ -171,16 +179,16 @@ void ronn::releaseResources()
 
 void ronn::calculateReceptiveField()
 {
-    int k = *kernelParameter;
-    int d = *dilationParameter;
-    int l = *layersParameter;
+    int k = (int) *kernelParameter;
+    int d = (int) *dilationParameter;
+    int l = (int) *layersParameter;
     double rf =  k * d;
 
     for (int layer = 1; layer < l; ++layer) {
         rf = rf + ((k-1) * pow(d,layer));
     }
 
-    receptiveFieldSamples = rf; // store in attribute
+    receptiveFieldSamples = (int) rf; // store in attribute
 }
 
 void ronn::processAudioBlock (AudioBuffer<float>& buffer)
