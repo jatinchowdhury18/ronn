@@ -1,0 +1,6 @@
+[submodule "plugin/juce/ronn-rtneural/modules/juce"]
+	path = plugin/juce/ronn-rtneural/modules/juce
+	url = https://github.com/juce-framework/juce
+[submodule "plugin/juce/ronn-rtneural/modules/RTNeural"]
+	path = plugin/juce/ronn-rtneural/modules/RTNeural
+	url = https://github.com/jatinchowdhury18/RTNeural
