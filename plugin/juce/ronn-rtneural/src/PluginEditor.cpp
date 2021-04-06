@@ -12,7 +12,7 @@
 
 //==============================================================================
 RonnAudioProcessorEditor::RonnAudioProcessorEditor (ronn& p, AudioProcessorValueTreeState& vts)
-    : AudioProcessorEditor (&p), processor (p), valueTreeState (vts)
+    : AudioProcessorEditor (&p), proc (p), valueTreeState (vts)
 {
 
     getLookAndFeel().setColour (Slider::thumbColourId, Colours::grey);
@@ -50,8 +50,7 @@ RonnAudioProcessorEditor::RonnAudioProcessorEditor (ronn& p, AudioProcessorValue
 
     inputGainSlider.setRange(-24, 24);
     inputGainSlider.setSliderStyle (Slider::Rotary);
-    inputGainSlider.setTextBoxStyle (Slider::TextBoxRight, false, 50, 24);//(Slider::NoTextBox, false, 0, 0);
-    inputGainSlider.onValueChange = [this] {updateGains(true);}; // @CHECK
+    inputGainSlider.setTextBoxStyle (Slider::TextBoxRight, false, 50, 24);
     inputGainSlider.setColour (Slider::textBoxBackgroundColourId, fillColour);
     inputGainSlider.setColour (Slider::textBoxOutlineColourId, fillColour);
     inputGainLabel.setText ("in", dontSendNotification);
@@ -59,8 +58,7 @@ RonnAudioProcessorEditor::RonnAudioProcessorEditor (ronn& p, AudioProcessorValue
     
     outputGainSlider.setRange(-24, 24);
     outputGainSlider.setSliderStyle (Slider::Rotary);
-    outputGainSlider.setTextBoxStyle (Slider::TextBoxRight, false, 50, 24);//(Slider::NoTextBox, false, 0, 0);
-    outputGainSlider.onValueChange = [this] {updateGains(false);}; // @CHECK
+    outputGainSlider.setTextBoxStyle (Slider::TextBoxRight, false, 50, 24);
     outputGainSlider.setColour (Slider::textBoxBackgroundColourId, fillColour);
     outputGainSlider.setColour (Slider::textBoxOutlineColourId, fillColour);
     outputGainLabel.setText ("out", dontSendNotification);
@@ -214,29 +212,6 @@ RonnAudioProcessorEditor::RonnAudioProcessorEditor (ronn& p, AudioProcessorValue
 
 RonnAudioProcessorEditor::~RonnAudioProcessorEditor()
 {
-}
-
-//==============================================================================
-void RonnAudioProcessorEditor::updateGains(bool inputGain)
-{
-  // if (inputGain == true){
-  //   processor.inputGainLn = juce::Decibels::decibelsToGain((float) inputGainSlider.getValue());
-  //   inputGainSlider.setValue (juce::Decibels::gainToDecibels(processor.inputGainLn));
-  //   if (linkGainButton.getToggleState()) {
-  //     float outputGaindB = -1 * inputGainSlider.getValue();
-  //     processor.outputGainLn = juce::Decibels::decibelsToGain((float) outputGaindB);
-  //     outputGainSlider.setValue (juce::Decibels::gainToDecibels(processor.outputGainLn));
-  //   }
-  // }
-  // else {
-  //   processor.outputGainLn = juce::Decibels::decibelsToGain((float) outputGainSlider.getValue());
-  //   outputGainSlider.setValue (juce::Decibels::gainToDecibels(processor.outputGainLn));
-  //   if (linkGainButton.getToggleState()) {
-  //     float inputGaindB = -1 * outputGainSlider.getValue();
-  //     processor.inputGainLn = juce::Decibels::decibelsToGain((float) inputGaindB);
-  //     inputGainSlider.setValue (juce::Decibels::gainToDecibels(processor.inputGainLn));
-  //   }
-  // }
 }
 
 //==============================================================================

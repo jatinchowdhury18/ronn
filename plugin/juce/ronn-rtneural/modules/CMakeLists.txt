@@ -5,6 +5,7 @@ add_library(juce_plugin_modules STATIC)
 target_link_libraries(juce_plugin_modules
     PRIVATE
         juce::juce_audio_utils
+        juce::juce_dsp
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags

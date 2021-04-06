@@ -27,7 +27,7 @@ public:
     };
 
     RonnAudioProcessorEditor (ronn&, AudioProcessorValueTreeState&);
-    ~RonnAudioProcessorEditor();
+    ~RonnAudioProcessorEditor() override;
 
     typedef AudioProcessorValueTreeState::SliderAttachment SliderAttachment;
     typedef AudioProcessorValueTreeState::ButtonAttachment ButtonAttachment;
@@ -38,12 +38,11 @@ public:
     void paint (Graphics&) override;
     void resized() override;
     void updateModelState();
-    void updateGains(bool inputGain);
 
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
-    ronn& processor;
+    ronn& proc;
     AudioProcessorValueTreeState& valueTreeState;
 
     // Main panel controls
